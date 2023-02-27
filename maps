@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Map of Canada</title>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.css"
+          integrity="sha512-LLN/URyFwTwTcN1rq75eYvYnvgcjAa/9sQ1GNg8FXX+uPPhJjxhQ2V7GmbB+LxFpJZVuXeCws+4BRD1aVoO6w=="
+          crossorigin=""/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.min.js"
+            integrity="sha512-D+2+aJ6/xcde6ksZUj7N+Xe4m4/hJEBm1+R6QiCnyKjS5LpkQHQTJzmZz+56fX5ikG+13QjOvOwOD1d39qfBBg=="
+            crossorigin=""></script>
+    <style>
+      #map {
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      // set up the map
+      var map = L.map('map').setView([56.1304, -106.3468], 4);
+
+      // add the OpenStreetMap tiles as the base layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(map);
+
+      // define the organization data
+      var organizations = [
+        {
+          name: 'Organization A',
+          zip: 'M5V 2T6',
+          type: 'Type 1',
+        },
+        {
+          name: 'Organization B',
+          zip: 'H3Z 1A4',
+          type: 'Type 2',
+        },
+        {
+          name: 'Organization C',
+          zip: 'V6B 2Z4',
+          type: 'Type 1',
+        },
+      ];
+
+      // create an empty markers cluster group
+      var markers = L.markerClusterGroup();
+
+      // create markers for each organization based on their zip code
+      for (var i = 0; i < organizations.length; i++) {
+        var organization = organizations[i];
+        var url = 'https://nominatim.openstreetmap.org/search?q=' + organization.zip + '&format=json&addressdetails=1&limit=1';
+        fetch(url)
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            if (data.length > 0) {
+              var marker = L.marker([data[0].lat, data[0].lon])
+                .bindPopup(organization.name + '<br>Type: ' + organization.type);
+              markers.addLayer(marker);
+            }
+          });
+      }
+
+      // add the markers cluster group to the map
+      map.addLayer(markers);
+
+      // create a filter control
+      var filterControl = L.control({position: 'topright'});
+
+      filterControl.onAdd = function (map) {
+        var div = L.DomUtil.create('div',
+// add a select dropdown to the control
+div.innerHTML = '<select id="filter"><option value="">All</option><option value="Type 1">Type 1</option><option value="Type 2">Type 2</option></select>';
+    // prevent clicks on the control from propagating to the map
+    L.DomEvent.disableClickPropagation(div);
+
+    // add an event listener to the select dropdown
+    L.DomEvent.addListener(div, 'change', function () {
+      var selectedType = document.getElementById('filter').value;
+      markers.clearLayers();
+      for (var i = 0; i < organizations.length; i++) {
+        var organization = organizations[i];
+        if (selectedType === '' || organization.type === selectedType) {
+          var url = 'https://nominatim.openstreetmap.org/search?q=' + organization.zip + '&format=json&addressdetails=1&limit=1';
+          fetch(url)
+            .then(function (response) {
+              return response.json();
+            })
+            .then(function (data) {
+              if (data.length > 0) {
+                var marker = L.marker([data[0].lat, data[0].lon])
+                  .bindPopup(organization.name + '<br>Type: ' + organization.type);
+                markers.addLayer(marker);
+              }
+            });
+        }
+      }
+    });
+
+    return div;
+  };
+
+  // add the filter control to the map
+  filterControl.addTo(map);
+</script>
+  </body>
+</html>
